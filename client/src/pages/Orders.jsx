@@ -132,9 +132,22 @@ function Orders() {
                     <p className="font-semibold">
                       {formatPrice(order.pricing.total)}
                     </p>
-                    <Button to={`/orders/${order.id}`} size="sm" variant="secondary">
-                      Details
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button to={`/orders/${order.id}`} size="sm">
+                        {order.status === 'delivered' ||
+                        order.status === 'cancelled'
+                          ? 'View details'
+                          : 'Track order'}
+                      </Button>
+                    </div>
+                    {![
+                      'delivered',
+                      'cancelled',
+                    ].includes(order.status) ? (
+                      <p className="text-xs text-[var(--muted)]">
+                        Live status: {formatStatus(order.status)}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </GlassCard>

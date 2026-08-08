@@ -8,6 +8,7 @@ router.use(protectUser);
 
 router.post('/', orderController.createOrder);
 router.get('/my', orderController.listMyOrders);
+router.get('/:id/tracking', orderController.getMyOrderTracking);
 router.get('/:id', orderController.getMyOrder);
 router.patch('/:id/cancel', orderController.cancelMyOrder);
 

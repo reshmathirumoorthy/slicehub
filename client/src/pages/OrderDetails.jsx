@@ -1,18 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import GlassCard from '../components/ui/GlassCard';
+import OrderTrackingTimeline from '../components/orders/OrderTrackingTimeline';
 import { cancelMyOrder, fetchMyOrder } from '../services/orderService';
 import PayNowButton from '../components/PayNowButton';
 import {
   formatPrice,
   formatStatus,
   ORDER_STATUS_TONE,
-  ORDER_STATUSES,
 } from '../utils/media';
+
+const STATUS_HEADLINE = {
+  pending: 'Your order has been placed',
+  confirmed: 'Your order is confirmed',
+  preparing: 'Your order is being prepared',
+  baking: 'Your pizza is baking',
+  out_for_delivery: 'Your order is out for delivery',
+  delivered: 'Your order has been delivered',
+  cancelled: 'This order was cancelled',
+};
 
 function OrderDetails() {
   const { id } = useParams();
@@ -57,7 +67,7 @@ function OrderDetails() {
   if (loading) {
     return (
       <GlassCard className="p-8 text-center text-[var(--muted)]">
-        Loading order…
+        Loading order tracking…
       </GlassCard>
     );
   }
@@ -65,37 +75,64 @@ function OrderDetails() {
   if (error || !order) {
     return (
       <GlassCard className="p-8 text-center">
-        <h1 className="font-display text-2xl font-bold">Order not found</h1>
-        <p className="mt-2 text-[var(--muted)]">{error}</p>
-        <Button to="/orders" className="mt-6">
-          Back to orders
-        </Button>
+        <h1 className="font-display text-2xl font-bold">
+          Unable to load tracking information
+        </h1>
+        <p className="mt-2 text-[var(--muted)]">
+          {error || 'Please try again.'}
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Button onClick={load}>Try again</Button>
+          <Button to="/orders" variant="secondary">
+            Back to orders
+          </Button>
+        </div>
       </GlassCard>
     );
   }
 
   const canCancel =
     order.status === 'pending' || order.status === 'confirmed';
-  const flow = ORDER_STATUSES.filter((s) => s !== 'cancelled');
-  const activeIndex = flow.indexOf(order.status);
+  const tracking = order.tracking || {};
+  const lifecycle = tracking.lifecycle || [
+    'pending',
+    'confirmed',
+    'preparing',
+    'baking',
+    'out_for_delivery',
+    'delivered',
+  ];
 
   return (
     <div className="space-y-6">
-      <Link
-        to="/orders"
-        className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-white"
-      >
-        <FiArrowLeft /> Back to orders
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/orders"
+          className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-white"
+        >
+          <FiArrowLeft /> Back to orders
+        </Link>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={load}
+          aria-label="Refresh tracking"
+        >
+          <FiRefreshCw /> Refresh
+        </Button>
+      </div>
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-3xl font-extrabold">
+            <h1 className="font-display text-3xl font-extrabold break-all">
               {order.orderNumber}
             </h1>
             <Badge tone={ORDER_STATUS_TONE[order.status] || 'muted'}>
-              {formatStatus(order.status)}
+              Order: {formatStatus(order.status)}
+            </Badge>
+            <Badge tone="muted">
+              Payment: {formatStatus(order.paymentStatus)}
             </Badge>
           </div>
           <p className="mt-2 text-sm text-[var(--muted)]">
@@ -118,36 +155,56 @@ function OrderDetails() {
         ) : null}
       </header>
 
-      {order.status !== 'cancelled' ? (
-        <GlassCard className="p-5">
-          <h2 className="font-display text-lg font-bold">Tracking</h2>
-          <ol className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {flow.map((step, index) => {
-              const done =
-                order.status === 'delivered'
-                  ? true
-                  : activeIndex >= 0 && index <= activeIndex;
-              return (
-                <li
-                  key={step}
-                  className={`rounded-xl border px-3 py-3 text-center text-xs font-semibold ${
-                    done
-                      ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-white'
-                      : 'border-white/10 bg-white/5 text-[var(--muted)]'
-                  }`}
-                >
-                  {formatStatus(step)}
-                </li>
-              );
-            })}
-          </ol>
-        </GlassCard>
-      ) : (
-        <GlassCard className="p-5 text-sm text-[var(--danger)]">
-          Cancelled
-          {order.cancellationReason ? ` — ${order.cancellationReason}` : ''}
-        </GlassCard>
-      )}
+      <GlassCard className="p-5 sm:p-6">
+        <p className="font-display text-xl font-bold sm:text-2xl">
+          {STATUS_HEADLINE[order.status] || formatStatus(order.status)}
+        </p>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Order {order.orderNumber}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3 text-sm">
+          <span>
+            Current status:{' '}
+            <strong className="text-white">{formatStatus(order.status)}</strong>
+          </span>
+          {tracking.nextStepLabel && order.status !== 'cancelled' ? (
+            <span className="text-[var(--muted)]">
+              Next step: {tracking.nextStepLabel}
+            </span>
+          ) : null}
+        </div>
+        {order.estimatedDeliveryAt &&
+        order.status !== 'delivered' &&
+        order.status !== 'cancelled' ? (
+          <p className="mt-3 text-xs text-[var(--muted)]">
+            Estimated delivery window around{' '}
+            {new Date(order.estimatedDeliveryAt).toLocaleString('en-IN', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}{' '}
+            (approximate)
+          </p>
+        ) : null}
+      </GlassCard>
+
+      <GlassCard className="p-5 sm:p-6">
+        <h2 className="font-display text-lg font-bold">Tracking</h2>
+        <div className="mt-4">
+          <OrderTrackingTimeline
+            status={order.status}
+            lifecycle={lifecycle}
+            history={order.statusHistory || tracking.history || []}
+            historyAvailable={Boolean(
+              tracking.historyAvailable ??
+                (order.statusHistory && order.statusHistory.length > 0),
+            )}
+            paymentStatus={order.paymentStatus}
+            paymentPaidAt={order.payment?.paidAt || tracking.paymentPaidAt}
+            cancelledAt={order.cancelledAt}
+            cancellationReason={order.cancellationReason}
+          />
+        </div>
+      </GlassCard>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <GlassCard className="space-y-4 p-5">
@@ -158,7 +215,7 @@ function OrderDetails() {
                 key={`${order.id}-${index}`}
                 className="flex justify-between gap-4 border-b border-white/10 pb-4 last:border-0 last:pb-0"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold">
                     {item.quantity}× {item.name}
                   </p>
@@ -183,7 +240,9 @@ function OrderDetails() {
                     </p>
                   )}
                 </div>
-                <p className="font-medium">{formatPrice(item.lineTotal)}</p>
+                <p className="shrink-0 font-medium">
+                  {formatPrice(item.lineTotal)}
+                </p>
               </li>
             ))}
           </ul>
@@ -191,16 +250,16 @@ function OrderDetails() {
 
         <div className="space-y-4">
           <GlassCard className="space-y-3 p-5 text-sm">
-            <h2 className="font-display text-lg font-bold">Delivery</h2>
-            <p className="font-medium">{order.address.fullName}</p>
-            <p className="text-[var(--muted)]">{order.address.phone}</p>
-            <p className="text-[var(--muted)]">
-              {order.address.street}
-              {order.address.landmark ? `, ${order.address.landmark}` : ''}
+            <h2 className="font-display text-lg font-bold">Delivery address</h2>
+            <p className="font-medium">{order.address?.fullName}</p>
+            <p className="text-[var(--muted)]">{order.address?.phone}</p>
+            <p className="break-words text-[var(--muted)]">
+              {order.address?.street}
+              {order.address?.landmark ? `, ${order.address.landmark}` : ''}
             </p>
             <p className="text-[var(--muted)]">
-              {order.address.city}, {order.address.state}{' '}
-              {order.address.postalCode}
+              {order.address?.city}, {order.address?.state}{' '}
+              {order.address?.postalCode}
             </p>
           </GlassCard>
 
@@ -211,9 +270,19 @@ function OrderDetails() {
               <span className="uppercase">{order.paymentMethod || '—'}</span>
             </div>
             <div className="flex justify-between text-[var(--muted)]">
-              <span>Status</span>
+              <span>Payment status</span>
               <span>{formatStatus(order.paymentStatus)}</span>
             </div>
+            {order.payment?.refundedAt || order.paymentStatus === 'refunded' ? (
+              <div className="flex justify-between text-[var(--muted)]">
+                <span>Refund</span>
+                <span>
+                  {order.payment?.refundAmount != null
+                    ? formatPrice(order.payment.refundAmount)
+                    : 'Recorded'}
+                </span>
+              </div>
+            ) : null}
             <div className="flex justify-between text-[var(--muted)]">
               <span>Subtotal</span>
               <span>{formatPrice(order.pricing.subtotal)}</span>

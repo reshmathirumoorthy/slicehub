@@ -133,6 +133,38 @@ const orderSchema = new mongoose.Schema(
       default: ORDER_STATUS.PENDING,
       index: true,
     },
+    /**
+     * Append-only status timeline (server timestamps only).
+     * Only written when the effective status actually changes.
+     */
+    statusHistory: {
+      type: [
+        {
+          status: {
+            type: String,
+            enum: Object.values(ORDER_STATUS),
+            required: true,
+          },
+          at: {
+            type: Date,
+            required: true,
+            default: Date.now,
+          },
+          note: {
+            type: String,
+            trim: true,
+            maxlength: [300, 'Status note cannot exceed 300 characters'],
+            default: '',
+          },
+          changedBy: {
+            type: String,
+            enum: ['system', 'customer', 'admin'],
+            default: 'system',
+          },
+        },
+      ],
+      default: [],
+    },
     paymentStatus: {
       type: String,
       enum: {

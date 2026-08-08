@@ -42,6 +42,17 @@ export const getMyOrder = asyncHandler(async (req, res) => {
   });
 });
 
+export const getMyOrderTracking = asyncHandler(async (req, res) => {
+  const data = await orderService.getMyOrderTracking(
+    req.user._id,
+    req.params.id,
+  );
+  res.status(200).json({
+    success: true,
+    data,
+  });
+});
+
 export const cancelMyOrder = asyncHandler(async (req, res) => {
   const order = await orderService.cancelMyOrder(
     req.user._id,

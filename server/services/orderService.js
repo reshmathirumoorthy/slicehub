@@ -38,6 +38,103 @@ const STATUS_FLOW = [
   ORDER_STATUS.DELIVERED,
 ];
 
+const STATUS_NOTES = {
+  [ORDER_STATUS.PENDING]: 'Order placed',
+  [ORDER_STATUS.CONFIRMED]: 'Order confirmed',
+  [ORDER_STATUS.PREPARING]: 'Preparation started',
+  [ORDER_STATUS.BAKING]: 'Order is baking',
+  [ORDER_STATUS.OUT_FOR_DELIVERY]: 'Out for delivery',
+  [ORDER_STATUS.DELIVERED]: 'Order delivered',
+  [ORDER_STATUS.CANCELLED]: 'Order cancelled',
+};
+
+/**
+ * Append a history entry only when status actually changes.
+ * @returns {boolean} whether a new entry was added
+ */
+const appendStatusHistory = (
+  order,
+  status,
+  { note = '', changedBy = 'system' } = {},
+) => {
+  const history = order.statusHistory || [];
+  const last = history[history.length - 1];
+  if (last && last.status === status) {
+    return false;
+  }
+  if (!order.statusHistory) order.statusHistory = [];
+  order.statusHistory.push({
+    status,
+    at: new Date(),
+    note: note || STATUS_NOTES[status] || '',
+    changedBy,
+  });
+  return true;
+};
+
+/**
+ * Validate progressive transitions. Cancel is a special terminal path.
+ * Same-status updates are no-ops (caller should short-circuit).
+ */
+const assertValidStatusTransition = (from, to) => {
+  if (from === to) return;
+
+  if (from === ORDER_STATUS.CANCELLED) {
+    throw new ApiError(400, 'Cancelled orders cannot change status');
+  }
+  if (from === ORDER_STATUS.DELIVERED && to !== ORDER_STATUS.DELIVERED) {
+    throw new ApiError(400, 'Delivered orders are final');
+  }
+
+  if (to === ORDER_STATUS.CANCELLED) {
+    return;
+  }
+
+  const fromIdx = STATUS_FLOW.indexOf(from);
+  const toIdx = STATUS_FLOW.indexOf(to);
+  if (fromIdx === -1 || toIdx === -1) {
+    throw new ApiError(400, 'Invalid order status');
+  }
+  if (toIdx <= fromIdx) {
+    throw new ApiError(
+      400,
+      `Invalid status transition from ${from} to ${to}`,
+    );
+  }
+};
+
+const buildTrackingPayload = (order, payment = null) => {
+  const history = (order.statusHistory || []).map((entry) => ({
+    status: entry.status,
+    at: entry.at,
+    note: entry.note || '',
+    changedBy: entry.changedBy || 'system',
+  }));
+
+  const historyAvailable = history.length > 0;
+  const currentIndex = STATUS_FLOW.indexOf(order.status);
+  const nextStep =
+    order.status === ORDER_STATUS.CANCELLED ||
+    order.status === ORDER_STATUS.DELIVERED ||
+    currentIndex < 0 ||
+    currentIndex >= STATUS_FLOW.length - 1
+      ? null
+      : STATUS_FLOW[currentIndex + 1];
+
+  return {
+    lifecycle: STATUS_FLOW,
+    history,
+    historyAvailable,
+    currentStatus: order.status,
+    nextStep,
+    currentLabel: STATUS_NOTES[order.status] || order.status,
+    nextStepLabel: nextStep ? STATUS_NOTES[nextStep] : null,
+    paymentStatus: order.paymentStatus,
+    paymentPaidAt: payment?.paidAt || null,
+    estimatedDeliveryAt: order.estimatedDeliveryAt || null,
+  };
+};
+
 const normalizePaymentMethod = (method) => {
   const raw = String(method || PAYMENT_METHODS.COD)
     .trim()
@@ -155,6 +252,13 @@ const serializeOrder = (order, payment = null) => ({
   deliveredAt: order.deliveredAt,
   cancelledAt: order.cancelledAt,
   cancellationReason: order.cancellationReason,
+  statusHistory: (order.statusHistory || []).map((entry) => ({
+    status: entry.status,
+    at: entry.at,
+    note: entry.note || '',
+    changedBy: entry.changedBy || 'system',
+  })),
+  tracking: buildTrackingPayload(order, payment),
   payment: payment
     ? {
         id: payment._id.toString(),
@@ -162,6 +266,8 @@ const serializeOrder = (order, payment = null) => ({
         amount: payment.amount,
         status: payment.status,
         paidAt: payment.paidAt,
+        refundedAt: payment.refundedAt || null,
+        refundAmount: payment.refundAmount ?? null,
         gateway: payment.gateway,
         razorpayOrderId: payment.razorpayOrderId || null,
         requiresPayment: ONLINE_PAYMENT_METHODS.includes(payment.method) &&
@@ -253,6 +359,14 @@ export const createOrderFromCart = async ({
     },
     notes: String(notes || '').trim().slice(0, 500),
     estimatedDeliveryAt: eta,
+    statusHistory: [
+      {
+        status: ORDER_STATUS.PENDING,
+        at: new Date(),
+        note: STATUS_NOTES[ORDER_STATUS.PENDING],
+        changedBy: 'system',
+      },
+    ],
   });
 
   const payment = await Payment.create({
@@ -331,6 +445,10 @@ export const cancelMyOrder = async (userId, orderId, reason = '') => {
     0,
     300,
   );
+  appendStatusHistory(order, ORDER_STATUS.CANCELLED, {
+    note: order.cancellationReason,
+    changedBy: 'customer',
+  });
   await order.save();
 
   const payment = await Payment.findOne({ order: order._id });
@@ -429,15 +547,14 @@ export const updateAdminOrderStatus = async ({
   if (!order) {
     throw new ApiError(404, 'Order not found');
   }
-  if (order.status === ORDER_STATUS.CANCELLED) {
-    throw new ApiError(400, 'Cancelled orders cannot change status');
+
+  if (order.status === status) {
+    // Idempotent: no duplicate history, no re-notification storm
+    const payment = await Payment.findOne({ order: order._id });
+    return serializeOrder(order, payment);
   }
-  if (
-    order.status === ORDER_STATUS.DELIVERED &&
-    status !== ORDER_STATUS.DELIVERED
-  ) {
-    throw new ApiError(400, 'Delivered orders are final');
-  }
+
+  assertValidStatusTransition(order.status, status);
 
   order.status = status;
   if (adminId) order.assignedAdmin = adminId;
@@ -471,6 +588,11 @@ export const updateAdminOrderStatus = async ({
     order.cancellationReason = order.cancellationReason || 'Cancelled by admin';
   }
 
+  appendStatusHistory(order, status, {
+    note: STATUS_NOTES[status],
+    changedBy: 'admin',
+  });
+
   await order.save();
 
   // Deduct inventory only once payment is successful (Razorpay verify or COD paid)
@@ -491,7 +613,39 @@ export const updateAdminOrderStatus = async ({
     await notifyPaymentSuccess(order);
   }
 
-  return serializeOrder(order);
+  const payment = await Payment.findOne({ order: order._id });
+  return serializeOrder(order, payment);
+};
+
+/**
+ * Used by payment verification when order moves pending → confirmed.
+ * Mutates the order document; caller saves.
+ */
+export const applyConfirmedStatusIfPending = (order) => {
+  if (order.status !== ORDER_STATUS.PENDING) {
+    return false;
+  }
+  assertValidStatusTransition(order.status, ORDER_STATUS.CONFIRMED);
+  order.status = ORDER_STATUS.CONFIRMED;
+  appendStatusHistory(order, ORDER_STATUS.CONFIRMED, {
+    note: STATUS_NOTES[ORDER_STATUS.CONFIRMED],
+    changedBy: 'system',
+  });
+  return true;
+};
+
+export const getMyOrderTracking = async (userId, orderId) => {
+  const order = await Order.findOne({ _id: orderId, user: userId }).populate(
+    'payment',
+  );
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+  const payment = order.payment || (await Payment.findOne({ order: order._id }));
+  return {
+    order: serializeOrder(order, payment),
+    tracking: buildTrackingPayload(order, payment),
+  };
 };
 
 export const getOrderStatusFlow = () => STATUS_FLOW;

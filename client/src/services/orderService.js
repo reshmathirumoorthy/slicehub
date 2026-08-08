@@ -26,6 +26,11 @@ export const fetchMyOrder = async (id) => {
   return data.data.order;
 };
 
+export const fetchMyOrderTracking = async (id) => {
+  const { data } = await api.get(`/orders/${id}/tracking`);
+  return data.data;
+};
+
 export const cancelMyOrder = async (id, reason) => {
   const { data } = await api.patch(`/orders/${id}/cancel`, { reason });
   return data.data.order;

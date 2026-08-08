@@ -15,6 +15,7 @@ import {
   notifyPaymentSuccess,
   notifyOrderStatusChange,
 } from './notificationEvents.js';
+import { applyConfirmedStatusIfPending } from './orderService.js';
 
 const getRazorpayClient = () => {
   if (!env.razorpay.keyId || !env.razorpay.keySecret) {
@@ -282,11 +283,7 @@ export const verifyRazorpayPayment = async ({
   await payment.save();
 
   order.paymentStatus = PAYMENT_STATUS.PAID;
-  let becameConfirmed = false;
-  if (order.status === ORDER_STATUS.PENDING) {
-    order.status = ORDER_STATUS.CONFIRMED;
-    becameConfirmed = true;
-  }
+  const becameConfirmed = applyConfirmedStatusIfPending(order);
   await order.save();
 
   // Stock only after successful payment verification

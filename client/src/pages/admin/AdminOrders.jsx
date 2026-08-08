@@ -266,6 +266,37 @@ function AdminOrders() {
                   </li>
                 ))}
               </ul>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-[var(--muted)]">
+                  Status history
+                </p>
+                {selected.statusHistory?.length ? (
+                  <ul className="max-h-40 space-y-2 overflow-y-auto text-xs text-[var(--muted)]">
+                    {selected.statusHistory.map((entry, i) => (
+                      <li
+                        key={`${selected.id}-hist-${i}`}
+                        className="rounded-lg border border-white/10 px-3 py-2"
+                      >
+                        <span className="font-semibold text-white">
+                          {formatStatus(entry.status)}
+                        </span>
+                        <span className="mt-0.5 block">
+                          {entry.at
+                            ? new Date(entry.at).toLocaleString()
+                            : '—'}
+                          {entry.note ? ` · ${entry.note}` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-[var(--muted)]">
+                    Tracking history is not available for this order.
+                  </p>
+                )}
+              </div>
+
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-[var(--muted)]">
                   Update status
