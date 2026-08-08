@@ -33,8 +33,8 @@ const createApp = () => {
     }),
   );
   app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
 
   // Static uploads directory (Multer destinations will use this later)

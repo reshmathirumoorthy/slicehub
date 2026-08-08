@@ -1,9 +1,9 @@
-import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import env from '../config/env.js';
 import Order from '../models/Order.js';
 import Payment from '../models/Payment.js';
 import ApiError from '../utils/ApiError.js';
+import { verifyRazorpaySignature } from '../utils/razorpaySignature.js';
 import {
   ONLINE_PAYMENT_METHODS,
   ORDER_STATUS,
@@ -162,14 +162,13 @@ const verifySignature = ({
   razorpayOrderId,
   razorpayPaymentId,
   razorpaySignature,
-}) => {
-  const body = `${razorpayOrderId}|${razorpayPaymentId}`;
-  const expected = crypto
-    .createHmac('sha256', env.razorpay.keySecret)
-    .update(body)
-    .digest('hex');
-  return expected === razorpaySignature;
-};
+}) =>
+  verifyRazorpaySignature({
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
+    secret: env.razorpay.keySecret,
+  });
 
 /**
  * Verify Razorpay checkout response and mark the order paid.

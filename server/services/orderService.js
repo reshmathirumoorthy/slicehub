@@ -19,6 +19,7 @@ import {
   assertSufficientStockForItems,
   deductInventoryForPaidOrder,
 } from './inventoryService.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 
 const CANCELABLE = new Set([ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED]);
 
@@ -348,7 +349,7 @@ export const listAdminOrders = async ({
   if (status) filter.status = status;
   if (paymentStatus) filter.paymentStatus = paymentStatus;
   if (search) {
-    const q = String(search).trim();
+    const q = escapeRegex(String(search).trim());
     filter.$or = [
       { orderNumber: new RegExp(q, 'i') },
       { 'addressSnapshot.fullName': new RegExp(q, 'i') },

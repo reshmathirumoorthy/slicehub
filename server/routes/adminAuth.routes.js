@@ -3,6 +3,10 @@ import * as adminAuthController from '../controllers/adminAuthController.js';
 import { protectAdmin, authorizeAdmin } from '../middleware/auth.js';
 import { ADMIN_ROLES } from '../models/constants.js';
 import {
+  authLimiter,
+  authStrictLimiter,
+} from '../middleware/rateLimit.js';
+import {
   emailValidation,
   loginValidation,
   resetPasswordValidation,
@@ -10,7 +14,7 @@ import {
 
 const router = Router();
 
-router.post('/login', loginValidation, adminAuthController.login);
+router.post('/login', authLimiter, loginValidation, adminAuthController.login);
 router.post('/logout', adminAuthController.logout);
 
 router.get('/me', protectAdmin, adminAuthController.getMe);
@@ -38,11 +42,13 @@ router.get(
 
 router.post(
   '/forgot-password',
+  authStrictLimiter,
   emailValidation,
   adminAuthController.forgotPassword,
 );
 router.post(
   '/reset-password/:token',
+  authStrictLimiter,
   resetPasswordValidation,
   adminAuthController.resetPassword,
 );

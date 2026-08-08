@@ -46,13 +46,14 @@ export const listPizzas = async (query = {}) => {
     if (maxPrice !== undefined) filter.basePrice.$lte = maxPrice;
   }
 
-  if (query.isAvailable !== undefined && query.isAvailable !== '') {
-    filter.isAvailable = parseBoolean(query.isAvailable, true);
-  } else if (query.includeUnavailable !== 'true') {
-    // Public default: only available pizzas
-    if (query.admin !== 'true') {
-      filter.isAvailable = true;
+  if (query.admin === 'true') {
+    if (query.isAvailable !== undefined && query.isAvailable !== '') {
+      filter.isAvailable = parseBoolean(query.isAvailable, true);
     }
+    // Admins see all pizzas unless they filter availability explicitly
+  } else {
+    // Public listings never expose availability overrides
+    filter.isAvailable = true;
   }
 
   if (query.isVegetarian !== undefined && query.isVegetarian !== '') {

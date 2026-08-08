@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as paymentController from '../controllers/paymentController.js';
 import { protectUser } from '../middleware/auth.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -8,6 +9,7 @@ const router = Router();
 router.get('/config', paymentController.getConfig);
 
 router.use(protectUser);
+router.use(paymentLimiter);
 
 router.post('/create-order', paymentController.createOrder);
 router.post('/verify', paymentController.verifyPayment);

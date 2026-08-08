@@ -46,4 +46,23 @@ const env = {
   },
 };
 
+const WEAK_JWT_SECRETS = new Set([
+  '',
+  'dev_only_secret',
+  'secret',
+  'jwt_secret',
+  'changeme',
+]);
+
+if (env.nodeEnv === 'production') {
+  if (!process.env.JWT_SECRET || WEAK_JWT_SECRETS.has(String(process.env.JWT_SECRET))) {
+    throw new Error(
+      'FATAL: JWT_SECRET must be set to a strong unique value in production',
+    );
+  }
+  if (!process.env.MONGODB_URI) {
+    throw new Error('FATAL: MONGODB_URI must be set in production');
+  }
+}
+
 export default env;

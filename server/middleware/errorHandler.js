@@ -9,7 +9,7 @@ const errorHandler = (err, _req, res, _next) => {
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
     statusCode = 400;
-    message = `Invalid ${err.path}: ${err.value}`;
+    message = 'Invalid resource identifier';
   }
 
   // Mongoose validation error

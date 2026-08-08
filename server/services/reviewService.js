@@ -5,6 +5,7 @@ import Order from '../models/Order.js';
 import User from '../models/User.js';
 import ApiError from '../utils/ApiError.js';
 import { assertValidObjectId } from '../utils/menuValidation.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
@@ -394,7 +395,7 @@ export const listAdminReviews = async ({
   }
 
   if (search) {
-    const q = String(search).trim();
+    const q = escapeRegex(String(search).trim());
     if (q) {
       const users = await User.find({
         $or: [

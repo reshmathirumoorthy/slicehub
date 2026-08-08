@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Admin from '../models/Admin.js';
 import ApiError from '../utils/ApiError.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 
 const sanitizeUser = (user, orderCount = 0) => ({
   id: user._id.toString(),
@@ -26,7 +27,7 @@ export const listUsers = async ({
   const filter = {};
   if (typeof isActive === 'boolean') filter.isActive = isActive;
   if (search) {
-    const q = String(search).trim();
+    const q = escapeRegex(String(search).trim());
     filter.$or = [
       { name: new RegExp(q, 'i') },
       { email: new RegExp(q, 'i') },

@@ -6,6 +6,7 @@ import {
   INVENTORY_STOCK_STATUS,
   INVENTORY_UNITS,
 } from '../models/constants.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 
 const formatLabel = (key) =>
   String(key || '')
@@ -221,10 +222,11 @@ export const listInventory = async ({
   const filter = {};
   if (category) filter.category = category;
   if (search) {
+    const q = escapeRegex(String(search).trim());
     filter.$or = [
-      { name: new RegExp(search, 'i') },
-      { sku: new RegExp(search, 'i') },
-      { itemKey: new RegExp(search, 'i') },
+      { name: new RegExp(q, 'i') },
+      { sku: new RegExp(q, 'i') },
+      { itemKey: new RegExp(q, 'i') },
     ];
   }
 
