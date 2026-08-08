@@ -6,6 +6,7 @@ import {
   ORDER_STATUS,
   PAYMENT_STATUS,
 } from '../models/constants.js';
+import { getReviewDashboardStats } from './reviewService.js';
 
 const startOfDay = (date = new Date()) => {
   const d = new Date(date);
@@ -115,6 +116,7 @@ export const getDashboardOverview = async () => {
     todayRevenue,
     inventory,
     recentOrders,
+    reviewStats,
   ] = await Promise.all([
     User.countDocuments({}),
     Order.countDocuments({}),
@@ -131,6 +133,7 @@ export const getDashboardOverview = async () => {
       .sort({ createdAt: -1 })
       .limit(8)
       .lean(),
+    getReviewDashboardStats(),
   ]);
 
   return {
@@ -145,6 +148,10 @@ export const getDashboardOverview = async () => {
       lowStockItems: inventory.lowStock,
       outOfStockItems: inventory.outOfStock,
       totalInventoryItems: inventory.totalItems,
+      totalReviews: reviewStats.totalReviews,
+      averageRating: reviewStats.averageRating,
+      fiveStarReviews: reviewStats.fiveStarReviews,
+      hiddenReviews: reviewStats.hiddenReviews,
     },
     notes: {
       revenueDefinition:

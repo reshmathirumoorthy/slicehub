@@ -52,9 +52,19 @@ function PizzaCard({ pizza }) {
               {pizza.description}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1 text-sm text-[var(--gold)]">
-            <FiStar />
-            <span>{pizza.rating}</span>
+          <div className="flex shrink-0 flex-col items-end gap-0.5 text-sm text-[var(--gold)]">
+            <span className="inline-flex items-center gap-1">
+              <FiStar />
+              <span>
+                {Number(pizza.rating || 0).toFixed(1)}
+                {pizza.reviewCount > 0 ? (
+                  <span className="text-[var(--muted)]">
+                    {' '}
+                    ({pizza.reviewCount})
+                  </span>
+                ) : null}
+              </span>
+            </span>
           </div>
         </div>
 

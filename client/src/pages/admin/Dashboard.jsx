@@ -100,6 +100,17 @@ function AdminDashboard() {
           value: overview.cards.outOfStockItems,
           tone: overview.cards.outOfStockItems ? 'danger' : 'success',
         },
+        { label: 'Total reviews', value: overview.cards.totalReviews ?? 0 },
+        {
+          label: 'Avg rating',
+          value: Number(overview.cards.averageRating || 0).toFixed(1),
+        },
+        { label: '5-star reviews', value: overview.cards.fiveStarReviews ?? 0 },
+        {
+          label: 'Hidden reviews',
+          value: overview.cards.hiddenReviews ?? 0,
+          tone: overview.cards.hiddenReviews ? 'gold' : 'success',
+        },
       ]
     : [];
 

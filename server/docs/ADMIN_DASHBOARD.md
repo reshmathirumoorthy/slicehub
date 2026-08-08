@@ -16,6 +16,7 @@
 | `/admin/pizzas` | Pizza CRUD (existing MenuManager) |
 | `/admin/categories` | Category CRUD |
 | `/admin/inventory` | Phase 10 inventory (unchanged logic) |
+| `/admin/reviews` | Moderate customer reviews |
 | `/admin/users` | Customer list + activate/deactivate |
 | `/admin/menu` | Redirect → pizzas |
 | `/admin/customers` | Redirect → users |
@@ -30,6 +31,11 @@
 - `GET /api/admin/users`
 - `GET /api/admin/users/:id`
 - `PATCH /api/admin/users/:id/status` `{ isActive: boolean }`
+
+### Reviews
+- `GET /api/admin/reviews` — search/filter reviews
+- `PATCH /api/admin/reviews/:id/visibility` `{ isVisible: boolean }`
+- Dashboard cards also include total/average/5-star/hidden review counts
 
 ### Existing (reused)
 - `/api/admin/orders`, `/api/admin/inventory`

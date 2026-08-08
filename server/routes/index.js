@@ -12,6 +12,8 @@ import adminOrderRoutes from './adminOrder.routes.js';
 import adminInventoryRoutes from './adminInventory.routes.js';
 import adminDashboardRoutes from './adminDashboard.routes.js';
 import adminUserRoutes from './adminUser.routes.js';
+import reviewRoutes from './review.routes.js';
+import adminReviewRoutes from './adminReview.routes.js';
 
 const router = Router();
 
@@ -27,6 +29,8 @@ router.use('/auth', authRoutes);
 router.use('/admin/auth', adminAuthRoutes);
 router.use('/admin/dashboard', adminDashboardRoutes);
 router.use('/admin/users', adminUserRoutes);
+router.use('/admin/reviews', adminReviewRoutes);
+router.use('/reviews', reviewRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/builder', builderRoutes);
 router.use('/cart', cartRoutes);

@@ -7,6 +7,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import GlassCard from '../components/ui/GlassCard';
 import Skeleton from '../components/ui/Skeleton';
+import PizzaReviewsSection from '../components/reviews/PizzaReviewsSection';
 import { useCart } from '../context/useCart';
 import { getPizzaById } from '../services/pizzaService';
 import { formatLabel, formatPrice } from '../utils/media';
@@ -109,6 +110,19 @@ function PizzaDetails() {
     } finally {
       setAdding(false);
     }
+  };
+
+  const handleReviewStats = (summary) => {
+    if (!summary) return;
+    setPizza((prev) =>
+      prev
+        ? {
+            ...prev,
+            rating: summary.averageRating,
+            reviewCount: summary.totalReviews,
+          }
+        : prev,
+    );
   };
 
   return (
@@ -256,6 +270,11 @@ function PizzaDetails() {
           </div>
         </GlassCard>
       </div>
+
+      <PizzaReviewsSection
+        pizzaId={pizza.id}
+        onStatsChange={handleReviewStats}
+      />
     </div>
   );
 }

@@ -26,6 +26,7 @@ import AdminOrders from '../pages/admin/AdminOrders';
 import AdminInventory from '../pages/admin/AdminInventory';
 import AdminCategories from '../pages/admin/AdminCategories';
 import AdminUsers from '../pages/admin/AdminUsers';
+import AdminReviews from '../pages/admin/AdminReviews';
 import AdminLogin from '../pages/admin/AdminLogin';
 import AdminPlaceholder from '../pages/admin/Placeholder';
 import NotFound, { ErrorPage } from '../pages/errors/NotFound';
@@ -74,6 +75,7 @@ const router = createBrowserRouter([
       { path: 'menu', element: <Navigate to="/admin/pizzas" replace /> },
       { path: 'categories', element: <AdminCategories /> },
       { path: 'inventory', element: <AdminInventory /> },
+      { path: 'reviews', element: <AdminReviews /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'customers', element: <Navigate to="/admin/users" replace /> },
       { path: 'coupons', element: <AdminPlaceholder title="Admin Coupons" /> },
