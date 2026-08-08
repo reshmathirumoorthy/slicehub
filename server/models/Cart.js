@@ -91,12 +91,10 @@ const cartSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null,
-      index: true,
     },
     guestId: {
       type: String,
       default: null,
-      index: true,
       trim: true,
     },
     items: {

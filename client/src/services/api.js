@@ -15,23 +15,29 @@ const api = axios.create({
   timeout: 15000,
 });
 
-const prefersAdminToken = (url = '') => {
+const prefersAdminToken = (url = '', method = 'get') => {
   const path = String(url);
-  return (
-    path.includes('/admin/') ||
-    path.startsWith('admin/') ||
-    // Admin pizza/category mutations share public paths but need admin JWT
-    /\/(pizzas|categories)(\/|$)/.test(path)
-  );
+  if (path.includes('/admin/') || path.startsWith('admin/')) {
+    return true;
+  }
+  // Public GET /pizzas and /categories must not prefer admin JWT.
+  // Admin create/update/delete on those paths still need the admin token.
+  const methodName = String(method || 'get').toLowerCase();
+  const isMutating = !['get', 'head', 'options'].includes(methodName);
+  return isMutating && /\/(pizzas|categories)(\/|$|\?)/.test(path);
 };
 
 api.interceptors.request.use((config) => {
   const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
   const userToken = localStorage.getItem(USER_TOKEN_KEY);
   const url = `${config.baseURL || ''}${config.url || ''}`;
+  const method = config.method || 'get';
 
   let token = null;
-  if (prefersAdminToken(url) || prefersAdminToken(config.url || '')) {
+  if (
+    prefersAdminToken(url, method) ||
+    prefersAdminToken(config.url || '', method)
+  ) {
     token = adminToken || userToken;
   } else {
     token = userToken || adminToken;

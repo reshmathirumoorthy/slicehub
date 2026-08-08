@@ -114,7 +114,7 @@ export const pizzas = [
     description:
       'Heirloom tomato, burrata pockets, pesto swirl, cracked pepper.',
     image:
-      'https://images.unsplash.com/photo-1571407970349-bc81e7e336d3?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=1200&q=80',
     isVegetarian: true,
     rating: 4.5,
     reviewCount: 132,

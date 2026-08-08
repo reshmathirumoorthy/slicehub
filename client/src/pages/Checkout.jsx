@@ -65,7 +65,10 @@ function Checkout() {
       setShowForm(false);
       toast.success('Address saved');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid address');
+      const fieldError = err.response?.data?.errors?.[0]?.message;
+      toast.error(
+        fieldError || err.response?.data?.message || 'Invalid address',
+      );
     } finally {
       setSavingAddress(false);
     }
@@ -153,10 +156,7 @@ function Checkout() {
         </p>
       </header>
 
-      <form
-        onSubmit={handlePlaceOrder}
-        className="grid gap-6 lg:grid-cols-[1fr_340px]"
-      >
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
           <GlassCard className="space-y-4 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -233,100 +233,126 @@ function Checkout() {
             </p>
           </GlassCard>
 
-          <GlassCard className="space-y-4 p-5 sm:p-6">
-            <h2 className="font-display text-xl font-bold">Payment</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { id: 'cod', label: 'COD' },
-                { id: 'upi', label: 'UPI' },
-                { id: 'card', label: 'Card' },
-              ].map((method) => (
-                <label
-                  key={method.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium has-[:checked]:border-[var(--accent)]/50 has-[:checked]:bg-[var(--accent)]/10"
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={paymentMethod === method.id}
-                    onChange={() => setPaymentMethod(method.id)}
-                    className="accent-[var(--accent)]"
-                  />
-                  {method.label}
-                </label>
-              ))}
-            </div>
-            {paymentMethod !== 'cod' ? (
-              <p className="text-xs text-[var(--muted)]">
-                UPI and Card use Razorpay TEST checkout after the order is placed.
-                The order is marked paid only after server signature verification.
-              </p>
-            ) : (
-              <p className="text-xs text-[var(--muted)]">
-                Pay cash on delivery. No online charge is taken now.
-              </p>
-            )}
-            <Input
-              label="Order notes (optional)"
-              name="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ring the bell, extra chili flakes…"
-            />
-          </GlassCard>
+          <form onSubmit={handlePlaceOrder} className="space-y-6">
+            <GlassCard className="space-y-4 p-5 sm:p-6">
+              <h2 className="font-display text-xl font-bold">Payment</h2>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  { id: 'cod', label: 'COD' },
+                  { id: 'upi', label: 'UPI' },
+                  { id: 'card', label: 'Card' },
+                ].map((method) => (
+                  <label
+                    key={method.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium has-[:checked]:border-[var(--accent)]/50 has-[:checked]:bg-[var(--accent)]/10"
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === method.id}
+                      onChange={() => setPaymentMethod(method.id)}
+                      className="accent-[var(--accent)]"
+                    />
+                    {method.label}
+                  </label>
+                ))}
+              </div>
+              {paymentMethod !== 'cod' ? (
+                <p className="text-xs text-[var(--muted)]">
+                  UPI and Card use Razorpay TEST checkout after the order is placed.
+                  The order is marked paid only after server signature verification.
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--muted)]">
+                  Pay cash on delivery. No online charge is taken now.
+                </p>
+              )}
+              <Input
+                label="Order notes (optional)"
+                name="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ring the bell, extra chili flakes…"
+              />
+            </GlassCard>
+
+            <GlassCard className="space-y-4 p-5 lg:hidden">
+              <OrderSummary
+                items={items}
+                totals={totals}
+                placing={placing}
+                selectedId={selectedId}
+              />
+            </GlassCard>
+          </form>
         </div>
 
-        <GlassCard className="h-fit space-y-4 p-5 lg:sticky lg:top-24">
-          <h2 className="font-display text-xl font-bold">Order summary</h2>
-          <ul className="space-y-3 text-sm">
-            {items.map((item) => (
-              <li key={item.id} className="flex justify-between gap-3">
-                <span className="text-[var(--muted)]">
-                  {item.quantity}× {item.name}
-                </span>
-                <span>{formatPrice(item.lineTotal)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="space-y-2 border-t border-white/10 pt-3 text-sm">
-            <div className="flex justify-between text-[var(--muted)]">
-              <span>Subtotal</span>
-              <span>{formatPrice(totals.subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-[var(--muted)]">
-              <span>Discount</span>
-              <span>-{formatPrice(totals.discount || 0)}</span>
-            </div>
-            <div className="flex justify-between text-[var(--muted)]">
-              <span>Delivery</span>
-              <span>
-                {totals.deliveryFee === 0
-                  ? 'Free'
-                  : formatPrice(totals.deliveryFee)}
-              </span>
-            </div>
-            <div className="flex justify-between text-[var(--muted)]">
-              <span>Tax</span>
-              <span>{formatPrice(totals.tax || 0)}</span>
-            </div>
-            <div className="flex justify-between text-base font-semibold">
-              <span>Final total</span>
-              <span>{formatPrice(totals.grandTotal)}</span>
-            </div>
-          </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={placing || !selectedId}
-          >
-            {placing ? 'Placing order…' : 'Place order'}
-          </Button>
-          <Button to="/cart" variant="ghost" className="w-full" size="sm">
-            Back to cart
-          </Button>
+        <GlassCard className="hidden h-fit space-y-4 p-5 lg:sticky lg:top-24 lg:block">
+          <form onSubmit={handlePlaceOrder}>
+            <OrderSummary
+              items={items}
+              totals={totals}
+              placing={placing}
+              selectedId={selectedId}
+            />
+          </form>
         </GlassCard>
-      </form>
+      </div>
     </div>
+  );
+}
+
+function OrderSummary({ items, totals, placing, selectedId }) {
+  return (
+    <>
+      <h2 className="font-display text-xl font-bold">Order summary</h2>
+      <ul className="mt-4 space-y-3 text-sm">
+        {items.map((item) => (
+          <li key={item.id} className="flex justify-between gap-3">
+            <span className="text-[var(--muted)]">
+              {item.quantity}× {item.name}
+            </span>
+            <span>{formatPrice(item.lineTotal)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 space-y-2 border-t border-white/10 pt-3 text-sm">
+        <div className="flex justify-between text-[var(--muted)]">
+          <span>Subtotal</span>
+          <span>{formatPrice(totals.subtotal)}</span>
+        </div>
+        <div className="flex justify-between text-[var(--muted)]">
+          <span>Discount</span>
+          <span>-{formatPrice(totals.discount || 0)}</span>
+        </div>
+        <div className="flex justify-between text-[var(--muted)]">
+          <span>Delivery</span>
+          <span>
+            {totals.deliveryFee === 0
+              ? 'Free'
+              : formatPrice(totals.deliveryFee)}
+          </span>
+        </div>
+        <div className="flex justify-between text-[var(--muted)]">
+          <span>Tax</span>
+          <span>{formatPrice(totals.tax || 0)}</span>
+        </div>
+        <div className="flex justify-between text-base font-semibold">
+          <span>Final total</span>
+          <span>{formatPrice(totals.grandTotal)}</span>
+        </div>
+      </div>
+      <Button
+        type="submit"
+        className="mt-4 w-full"
+        disabled={placing || !selectedId}
+      >
+        {placing ? 'Placing order…' : 'Place order'}
+      </Button>
+      <Button to="/cart" variant="ghost" className="mt-2 w-full" size="sm">
+        Back to cart
+      </Button>
+    </>
   );
 }
 

@@ -14,7 +14,8 @@ const inventorySchema = new mongoose.Schema(
       type: String,
       required: [true, 'Inventory item name is required'],
       trim: true,
-      unique: true,
+      // Not globally unique: e.g. tomato sauce vs tomato vegetable share a label.
+      // Uniqueness is enforced via `sku` and `{ category, itemKey }`.
       minlength: [2, 'Name must be at least 2 characters'],
       maxlength: [100, 'Name cannot exceed 100 characters'],
     },
@@ -114,7 +115,8 @@ inventorySchema.index({ category: 1, itemKey: 1 }, { unique: true });
 inventorySchema.index({ quantityInStock: 1, minimumThreshold: 1 });
 inventorySchema.index({ name: 'text' });
 
-inventorySchema.pre('validate', function syncThreshold(next) {
+inventorySchema.pre('validate', function syncThreshold() {
+  // Mongoose 9+ does not pass a `next` callback to document middleware.
   if (this.isModified('minimumThreshold') && !this.isModified('reorderLevel')) {
     this.reorderLevel = this.minimumThreshold;
   } else if (
@@ -127,7 +129,6 @@ inventorySchema.pre('validate', function syncThreshold(next) {
   } else if (this.reorderLevel == null && this.minimumThreshold != null) {
     this.reorderLevel = this.minimumThreshold;
   }
-  next();
 });
 
 inventorySchema.virtual('isLowStock').get(function isLowStock() {

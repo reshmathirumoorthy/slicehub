@@ -99,14 +99,14 @@ notificationSchema.index(
   { unique: true, sparse: true },
 );
 
-notificationSchema.pre('validate', function requireRecipient(next) {
+notificationSchema.pre('validate', function requireRecipient() {
+  // Mongoose 9+ does not pass a `next` callback to document middleware.
   if (this.audience === NOTIFICATION_AUDIENCE.USER && !this.user) {
     this.invalidate('user', 'User is required for user notifications');
   }
   if (this.audience === NOTIFICATION_AUDIENCE.ADMIN && !this.admin) {
     this.invalidate('admin', 'Admin is required for admin notifications');
   }
-  next();
 });
 
 const Notification = mongoose.model('Notification', notificationSchema);

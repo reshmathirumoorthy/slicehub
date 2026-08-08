@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
@@ -10,14 +10,22 @@ import { useCart } from '../context/useCart';
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mergeGuestCart } = useCart();
   const [loading, setLoading] = useState(false);
+  const [emailValue, setEmailValue] = useState(
+    String(location.state?.email || ''),
+  );
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') || '').trim();
     const password = String(form.get('password') || '');
+    setEmailValue(email);
+    setNeedsVerification(false);
 
     setLoading(true);
     try {
@@ -27,9 +35,37 @@ function Login() {
       toast.success('Welcome back');
       navigate('/cart');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      const message = error.response?.data?.message || 'Login failed';
+      const code = error.response?.data?.code;
+      const status = error.response?.status;
+      if (
+        status === 403 &&
+        (code === 'EMAIL_NOT_VERIFIED' || /verify your email/i.test(String(message)))
+      ) {
+        setNeedsVerification(true);
+      }
+      toast.error(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!emailValue.trim()) {
+      toast.error('Enter your email first');
+      return;
+    }
+    setResending(true);
+    try {
+      const { data } = await api.post('/auth/resend-verification', {
+        email: emailValue.trim(),
+      });
+      toast.success(data.message || 'Verification email sent');
+      navigate(`/verify-email?email=${encodeURIComponent(emailValue.trim())}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not resend email');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -53,6 +89,8 @@ function Login() {
             placeholder="you@example.com"
             autoComplete="email"
             required
+            defaultValue={emailValue}
+            onChange={(event) => setEmailValue(event.target.value)}
           />
           <Input
             label="Password"
@@ -63,17 +101,40 @@ function Login() {
             required
           />
           <div className="flex justify-end">
-            <button
-              type="button"
+            <Link
+              to="/forgot-password"
               className="text-xs text-[var(--muted)] hover:text-[var(--accent-soft)]"
-              onClick={() => toast('Use /api/auth/forgot-password')}
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
+          {needsVerification ? (
+            <div className="space-y-2">
+              <p className="text-xs text-amber-100/90">
+                Your account exists but is not verified yet.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                disabled={resending}
+                onClick={handleResendVerification}
+              >
+                {resending ? 'Sending…' : 'Resend verification email'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                to={`/verify-email?email=${encodeURIComponent(emailValue.trim())}`}
+              >
+                Open verify email page
+              </Button>
+            </div>
+          ) : null}
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--muted)]">

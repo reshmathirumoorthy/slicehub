@@ -65,6 +65,12 @@ const userSchema = new mongoose.Schema(
       select: false,
       default: null,
     },
+    /** Cooldown for verification / resend emails */
+    emailVerificationLastSentAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
     passwordResetToken: {
       type: String,
       select: false,
@@ -123,13 +129,13 @@ userSchema.virtual('orders', {
   foreignField: 'user',
 });
 
-userSchema.pre('save', async function hashPassword(next) {
+userSchema.pre('save', async function hashPassword() {
+  // Mongoose 9+ async middleware must not use the legacy `next` callback.
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
 
   this.password = await bcrypt.hash(this.password, 12);
-  return next();
 });
 
 userSchema.methods.comparePassword = async function comparePassword(

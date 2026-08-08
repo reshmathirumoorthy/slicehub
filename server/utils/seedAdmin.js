@@ -18,6 +18,11 @@ const seedAdmin = async () => {
   const password = process.env.ADMIN_PASSWORD || 'Admin12345';
   const role = process.env.ADMIN_ROLE || ADMIN_ROLES.SUPER_ADMIN;
 
+  if (!process.env.ADMIN_PASSWORD) {
+    console.warn(
+      '[seed:admin] ADMIN_PASSWORD is not set — using the development default. Set ADMIN_PASSWORD before any shared or production deploy.',
+    );
+  }
   await mongoose.connect(env.mongodbUri);
 
   const existing = await Admin.findOne({ email });

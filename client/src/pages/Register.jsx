@@ -25,7 +25,14 @@ function Register() {
     try {
       const { data } = await api.post('/auth/register', payload);
       toast.success(data.message || 'Account created — verify your email');
-      navigate('/login');
+      const email = encodeURIComponent(payload.email);
+      navigate(`/verify-email?email=${email}`);
+      if (data.data?.emailSent === false) {
+        toast.error(
+          'Verification email was not delivered. Configure SMTP in server/.env, then use Resend.',
+          { duration: 6000 },
+        );
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');
     } finally {

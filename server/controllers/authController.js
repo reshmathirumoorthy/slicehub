@@ -25,7 +25,12 @@ export const register = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     message: result.message,
-    data: { user: result.user },
+    data: {
+      user: result.user,
+      emailSent: result.emailSent,
+      emailDelivery: result.emailDelivery,
+      requiresEmailVerification: true,
+    },
   });
 });
 
@@ -71,6 +76,22 @@ export const getMe = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PATCH /api/auth/me
+ */
+export const updateMe = asyncHandler(async (req, res) => {
+  const user = await authService.updateCurrentUser(req.user._id, {
+    name: req.body.name,
+    phone: req.body.phone,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    data: { user },
+  });
+});
+
+/**
  * GET /api/auth/verify-email/:token
  */
 export const verifyEmail = asyncHandler(async (req, res) => {
@@ -92,6 +113,10 @@ export const resendVerification = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: result.message,
+    data: {
+      emailSent: result.emailSent ?? null,
+      emailDelivery: result.emailDelivery ?? null,
+    },
   });
 });
 

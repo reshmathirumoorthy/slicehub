@@ -47,12 +47,12 @@ function Pizza3D({
 
     if (!reducedMotion && float) {
       groupRef.current.position.y =
-        Math.sin(state.clock.elapsedTime * 0.9) * 0.06;
+        Math.sin(state.clock.elapsedTime * 0.55) * 0.035;
     }
   });
 
   return (
-    <group ref={groupRef} scale={targetScale} rotation={[-0.55, 0.35, 0]}>
+    <group ref={groupRef} scale={targetScale} rotation={[-0.55, 0.32, 0.03]}>
       <PizzaBase base={config.base} />
       <PizzaSauce sauce={config.sauce} baseHeight={baseHeight} />
       <PizzaCheese cheese={config.cheese} baseHeight={baseHeight} />
@@ -61,7 +61,7 @@ function Pizza3D({
           cheese={config.cheese}
           baseHeight={baseHeight}
           extra
-          opacity={0.85}
+          opacity={0.82}
         />
       ) : null}
       <PizzaToppings

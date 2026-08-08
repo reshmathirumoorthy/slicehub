@@ -115,3 +115,9 @@ export const resetPasswordValidation = validateBody([
       value !== body.password ? 'Passwords do not match' : null,
   },
 ]);
+
+/** Customer profile update — name + phone only (email changes need re-verify). */
+export const updateProfileValidation = validateBody([
+  { field: 'name', min: 2, max: 80 },
+  { field: 'phone', type: 'phone' },
+]);

@@ -77,13 +77,13 @@ const adminSchema = new mongoose.Schema(
 adminSchema.index({ createdAt: -1 });
 adminSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
-adminSchema.pre('save', async function hashPassword(next) {
+adminSchema.pre('save', async function hashPassword() {
+  // Mongoose 9+ async middleware must not use the legacy `next` callback.
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
 
   this.password = await bcrypt.hash(this.password, 12);
-  return next();
 });
 
 adminSchema.methods.comparePassword = async function comparePassword(

@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import PizzaCard from '../components/pizza/PizzaCard';
 import Button from '../components/ui/Button';
 import { PizzaCardSkeleton } from '../components/ui/Skeleton';
-import { orders, formatStatus } from '../data/placeholder';
 import Badge from '../components/ui/Badge';
 import { getPizzas } from '../services/pizzaService';
+import { fetchMyOrders } from '../services/orderService';
+import { getUserToken } from '../services/api';
+import { formatStatus } from '../utils/media';
 
 function Home() {
   const [loading, setLoading] = useState(true);
@@ -13,7 +15,9 @@ function Home() {
   const [heroImage, setHeroImage] = useState(
     'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=1200&q=80',
   );
-  const latestOrder = orders[0];
+  const [latestOrder, setLatestOrder] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const signedIn = Boolean(getUserToken());
 
   useEffect(() => {
     let active = true;
@@ -36,6 +40,34 @@ function Home() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setLatestOrder(null);
+      setOrdersLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    setOrdersLoading(true);
+    fetchMyOrders({ page: 1, limit: 1 })
+      .then((data) => {
+        if (!active) return;
+        const list = data.orders || [];
+        setLatestOrder(list[0] || null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLatestOrder(null);
+      })
+      .finally(() => {
+        if (active) setOrdersLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [signedIn]);
 
   return (
     <div className="space-y-10">
@@ -74,20 +106,46 @@ function Home() {
         </div>
       </motion.section>
 
-      {latestOrder ? (
+      {signedIn ? (
         <section className="glass flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-[var(--muted)]">Latest order</p>
-            <p className="mt-1 font-display text-xl font-bold">
-              {latestOrder.orderNumber}
-            </p>
-            <div className="mt-2">
-              <Badge tone="ember">{formatStatus(latestOrder.status)}</Badge>
-            </div>
-          </div>
-          <Button to="/orders" variant="secondary" size="sm">
-            View details
-          </Button>
+          {ordersLoading ? (
+            <p className="text-sm text-[var(--muted)]">Loading latest order…</p>
+          ) : latestOrder ? (
+            <>
+              <div>
+                <p className="text-sm text-[var(--muted)]">Latest order</p>
+                <p className="mt-1 font-display text-xl font-bold">
+                  {latestOrder.orderNumber}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge tone="ember">{formatStatus(latestOrder.status)}</Badge>
+                  {latestOrder.items?.[0]?.name ? (
+                    <span className="text-xs text-[var(--muted)]">
+                      {latestOrder.items[0].name}
+                      {latestOrder.items.length > 1
+                        ? ` +${latestOrder.items.length - 1} more`
+                        : ''}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <Button to={`/orders/${latestOrder.id}`} variant="secondary" size="sm">
+                View details
+              </Button>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-sm text-[var(--muted)]">Latest order</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  You haven&apos;t placed an order yet.
+                </p>
+              </div>
+              <Button to="/menu" variant="secondary" size="sm">
+                Browse menu
+              </Button>
+            </>
+          )}
         </section>
       ) : null}
 

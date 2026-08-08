@@ -7,7 +7,11 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // Listen on IPv4 + IPv6 so email links to localhost / 127.0.0.1 both work.
+    // Without this, Vite often binds only to ::1 and 127.0.0.1 is unreachable.
+    host: true,
     port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

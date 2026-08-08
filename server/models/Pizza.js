@@ -184,7 +184,6 @@ const pizzaSchema = new mongoose.Schema(
 
 pizzaSchema.index({ name: 'text', description: 'text' });
 pizzaSchema.index({ isAvailable: 1, category: 1 });
-pizzaSchema.index({ basePrice: 1 });
 pizzaSchema.index({ averageRating: -1, reviewCount: -1 });
 
 pizzaSchema.virtual('reviews', {

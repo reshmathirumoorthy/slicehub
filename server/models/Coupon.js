@@ -92,7 +92,8 @@ const couponSchema = new mongoose.Schema(
 couponSchema.index({ startDate: 1, endDate: 1 });
 couponSchema.index({ isActive: 1, code: 1 });
 
-couponSchema.pre('validate', function ensurePercentageBounds(next) {
+couponSchema.pre('validate', function ensurePercentageBounds() {
+  // Mongoose 9+ does not pass a `next` callback to document middleware.
   if (
     this.discountType === COUPON_TYPES.PERCENTAGE &&
     this.discountValue > 100
@@ -102,7 +103,6 @@ couponSchema.pre('validate', function ensurePercentageBounds(next) {
       'Percentage discount cannot exceed 100',
     );
   }
-  next();
 });
 
 const Coupon = mongoose.model('Coupon', couponSchema);

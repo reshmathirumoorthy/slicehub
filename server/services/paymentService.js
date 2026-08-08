@@ -21,7 +21,7 @@ const getRazorpayClient = () => {
   if (!env.razorpay.keyId || !env.razorpay.keySecret) {
     throw new ApiError(
       503,
-      'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET (test mode).',
+      'Online payment is currently unavailable. COD remains available.',
     );
   }
   return new Razorpay({

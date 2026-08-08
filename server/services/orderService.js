@@ -379,7 +379,6 @@ export const createOrderFromCart = async ({
     status: isOnline ? PAYMENT_STATUS.CREATED : PAYMENT_STATUS.PENDING,
     paidAt: null,
     gateway: isOnline ? 'razorpay' : 'cod',
-    transactionId: null,
   });
 
   if (couponDoc) {

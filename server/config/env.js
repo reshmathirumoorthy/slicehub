@@ -25,6 +25,11 @@ const env = {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
     from: process.env.EMAIL_FROM || 'SliceHub <noreply@slicehub.com>',
+    /** When unset: true for port 465, false otherwise (STARTTLS on 587). */
+    secure:
+      process.env.EMAIL_SECURE === undefined
+        ? undefined
+        : String(process.env.EMAIL_SECURE).toLowerCase() === 'true',
   },
   uploadDir: process.env.UPLOAD_DIR || 'uploads',
   maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB) || 5,

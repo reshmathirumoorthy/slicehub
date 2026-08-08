@@ -1,5 +1,5 @@
 /**
- * Shared visual tokens for the procedural 3D pizza.
+ * Shared visual tokens for the realistic procedural 3D pizza.
  * No business/API logic here.
  */
 
@@ -10,11 +10,11 @@ export const SIZE_SCALE = {
 };
 
 export const BASE_STYLE = {
-  thin_crust: { height: 0.08, color: '#c9844a', rim: '#a86a35' },
-  hand_tossed: { height: 0.12, color: '#d09255', rim: '#b0753d' },
-  cheese_burst: { height: 0.14, color: '#d9a066', rim: '#e8c27a' },
-  stuffed_crust: { height: 0.16, color: '#c8894d', rim: '#f0d090' },
-  whole_wheat: { height: 0.11, color: '#9a6b3c', rim: '#7d542e' },
+  thin_crust: { height: 0.1, color: '#c9844a', rim: '#a86a35' },
+  hand_tossed: { height: 0.14, color: '#d09255', rim: '#b0753d' },
+  cheese_burst: { height: 0.16, color: '#d9a066', rim: '#e8c27a' },
+  stuffed_crust: { height: 0.18, color: '#c8894d', rim: '#f0d090' },
+  whole_wheat: { height: 0.13, color: '#9a6b3c', rim: '#7d542e' },
 };
 
 export const SAUCE_COLOR = {

@@ -12,7 +12,7 @@ const heroCustomization = {
   base: 'cheese_burst',
   sauce: 'tomato',
   cheese: 'mozzarella',
-  vegetables: ['mushroom', 'olives', 'capsicum'],
+  vegetables: ['mushroom', 'olives', 'capsicum', 'onion', 'tomato'],
   extraCheese: true,
 };
 

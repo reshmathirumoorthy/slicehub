@@ -4,10 +4,15 @@ import { hashToken } from '../utils/tokenCrypto.js';
 import { signToken } from '../utils/jwt.js';
 import { AUTH_ACCOUNT_TYPES } from '../models/constants.js';
 import {
+  getEmailDeliveryMode,
+  isSmtpConfigured,
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from './emailService.js';
 import { notifyNewCustomerRegistered } from './notificationEvents.js';
+
+/** Minimum seconds between verification emails for the same account. */
+const VERIFICATION_RESEND_COOLDOWN_SEC = 60;
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -36,6 +41,37 @@ const issueUserAuth = async (user) => {
   return { token, user: sanitizeUser(user) };
 };
 
+const assertResendCooldown = (user) => {
+  if (!user.emailVerificationLastSentAt) return;
+  const elapsedMs = Date.now() - new Date(user.emailVerificationLastSentAt).getTime();
+  const remainingMs = VERIFICATION_RESEND_COOLDOWN_SEC * 1000 - elapsedMs;
+  if (remainingMs > 0) {
+    const retryAfterSec = Math.ceil(remainingMs / 1000);
+    throw new ApiError(
+      429,
+      `Please wait ${retryAfterSec} seconds before requesting another verification email.`,
+      null,
+      'VERIFICATION_COOLDOWN',
+    );
+  }
+};
+
+const dispatchVerificationEmail = async (user, rawToken) => {
+  const result = await sendVerificationEmail({
+    to: user.email,
+    name: user.name,
+    token: rawToken,
+  });
+
+  user.emailVerificationLastSentAt = new Date();
+  await user.save({ validateBeforeSave: false });
+
+  return {
+    emailSent: Boolean(result.delivered),
+    emailDelivery: result.mode || getEmailDeliveryMode(),
+  };
+};
+
 export const registerUser = async ({ name, email, password, phone }) => {
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) {
@@ -44,24 +80,37 @@ export const registerUser = async ({ name, email, password, phone }) => {
 
   const user = new User({ name, email, password, phone });
   const verificationToken = user.createEmailVerificationToken();
+  user.emailVerificationLastSentAt = new Date();
   await user.save();
 
+  let emailSent = false;
+  let emailDelivery = getEmailDeliveryMode();
+
   try {
-    await sendVerificationEmail({
+    const delivery = await sendVerificationEmail({
       to: user.email,
       name: user.name,
       token: verificationToken,
     });
+    emailSent = Boolean(delivery.delivered);
+    emailDelivery = delivery.mode || emailDelivery;
   } catch (error) {
     console.error('Failed to send verification email:', error.message);
+    emailSent = false;
+    emailDelivery = 'send_failed';
   }
 
   await notifyNewCustomerRegistered(user);
 
+  const baseMessage = emailSent
+    ? 'Registration successful. Please check your email to verify your account.'
+    : 'Registration successful, but the verification email could not be sent. Configure SMTP (EMAIL_* in server/.env) and use Resend on the verify page.';
+
   return {
     user: sanitizeUser(user),
-    message:
-      'Registration successful. Please check your email to verify your account.',
+    emailSent,
+    emailDelivery,
+    message: baseMessage,
   };
 };
 
@@ -82,6 +131,8 @@ export const loginUser = async ({ email, password }) => {
     throw new ApiError(
       403,
       'Please verify your email before logging in',
+      null,
+      'EMAIL_NOT_VERIFIED',
     );
   }
 
@@ -115,39 +166,67 @@ export const verifyUserEmail = async (rawToken) => {
 };
 
 export const resendVerificationEmail = async (email) => {
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const normalized = String(email || '').toLowerCase().trim();
+  const genericMessage =
+    'If an account exists for that email, a verification link has been sent.';
 
-  // Avoid account enumeration
+  const user = await User.findOne({ email: normalized }).select(
+    '+emailVerificationToken +emailVerificationExpires +emailVerificationLastSentAt',
+  );
+
+  // Avoid account enumeration for unknown emails
   if (!user) {
-    return {
-      message:
-        'If an account exists for that email, a verification link has been sent.',
-    };
+    return { message: genericMessage, emailSent: false };
   }
 
   if (user.isEmailVerified) {
-    throw new ApiError(400, 'Email is already verified');
+    throw new ApiError(400, 'Email is already verified', null, 'ALREADY_VERIFIED');
   }
+
+  if (!isSmtpConfigured()) {
+    throw new ApiError(
+      503,
+      'Email service is not configured. Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS (Gmail App Password) in server/.env, then try again.',
+      null,
+      'SMTP_NOT_CONFIGURED',
+    );
+  }
+
+  assertResendCooldown(user);
 
   const verificationToken = user.createEmailVerificationToken();
   await user.save({ validateBeforeSave: false });
 
-  await sendVerificationEmail({
-    to: user.email,
-    name: user.name,
-    token: verificationToken,
-  });
-
-  return {
-    message:
-      'If an account exists for that email, a verification link has been sent.',
-  };
+  try {
+    const delivery = await dispatchVerificationEmail(user, verificationToken);
+    return {
+      message: genericMessage,
+      emailSent: delivery.emailSent,
+      emailDelivery: delivery.emailDelivery,
+    };
+  } catch {
+    throw new ApiError(
+      503,
+      'Failed to send verification email. Check SMTP settings and try again.',
+      null,
+      'EMAIL_SEND_FAILED',
+    );
+  }
 };
 
 export const forgotPassword = async (email) => {
   const user = await User.findOne({ email: email.toLowerCase() });
 
   if (user && user.isActive) {
+    if (!isSmtpConfigured()) {
+      throw new ApiError(
+        503,
+        'Email service is not configured. Set EMAIL_* in server/.env before resetting passwords.',
+        null,
+        'SMTP_NOT_CONFIGURED',
+      );
+    }
+
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
@@ -204,4 +283,25 @@ export const getCurrentUser = async (userId) => {
   return sanitizeUser(user);
 };
 
-export { sanitizeUser };
+/**
+ * Update authenticated customer profile fields (name, phone).
+ * Email is intentionally not editable here to avoid verification bypass.
+ */
+export const updateCurrentUser = async (userId, { name, phone }) => {
+  const user = await User.findById(userId);
+  if (!user || !user.isActive) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  if (name !== undefined) {
+    user.name = String(name).trim();
+  }
+  if (phone !== undefined) {
+    user.phone = String(phone).trim();
+  }
+
+  await user.save();
+  return sanitizeUser(user);
+};
+
+export { sanitizeUser, VERIFICATION_RESEND_COOLDOWN_SEC };

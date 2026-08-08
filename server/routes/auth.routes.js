@@ -10,6 +10,7 @@ import {
   loginValidation,
   registerValidation,
   resetPasswordValidation,
+  updateProfileValidation,
 } from '../middleware/validate.js';
 
 const router = Router();
@@ -24,6 +25,12 @@ router.post('/login', authLimiter, loginValidation, authController.login);
 router.post('/logout', authController.logout);
 
 router.get('/me', protectUser, authController.getMe);
+router.patch(
+  '/me',
+  protectUser,
+  updateProfileValidation,
+  authController.updateMe,
+);
 
 router.get('/verify-email/:token', authController.verifyEmail);
 router.post(

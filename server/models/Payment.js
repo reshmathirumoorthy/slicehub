@@ -11,7 +11,6 @@ const paymentSchema = new mongoose.Schema(
       ref: 'Order',
       required: [true, 'Order is required'],
       unique: true,
-      index: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -58,23 +57,19 @@ const paymentSchema = new mongoose.Schema(
     transactionId: {
       type: String,
       trim: true,
-      default: null,
-      sparse: true,
-      unique: true,
+      default: undefined,
     },
     razorpayOrderId: {
       type: String,
       trim: true,
-      default: null,
+      default: undefined,
       index: true,
       sparse: true,
     },
     razorpayPaymentId: {
       type: String,
       trim: true,
-      default: null,
-      sparse: true,
-      unique: true,
+      default: undefined,
     },
     razorpaySignature: {
       type: String,
@@ -119,6 +114,26 @@ const paymentSchema = new mongoose.Schema(
 
 paymentSchema.index({ status: 1, createdAt: -1 });
 paymentSchema.index({ user: 1, createdAt: -1 });
+// Sparse unique indexes treat explicit `null` as a real value — only index
+// actual gateway ids so unpaid COD/online payments can coexist.
+paymentSchema.index(
+  { transactionId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      transactionId: { $type: 'string' },
+    },
+  },
+);
+paymentSchema.index(
+  { razorpayPaymentId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      razorpayPaymentId: { $type: 'string' },
+    },
+  },
+);
 
 const Payment = mongoose.model('Payment', paymentSchema);
 
