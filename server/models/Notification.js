@@ -60,6 +60,22 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    /**
+     * Idempotency key, e.g. user:<id>:order:<id>:status:delivered
+     * Sparse unique — prevents duplicate event notifications.
+     */
+    eventKey: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: [200, 'eventKey cannot exceed 200 characters'],
+    },
+    link: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: [300, 'Link cannot exceed 300 characters'],
+    },
     isRead: {
       type: Boolean,
       default: false,
@@ -78,6 +94,10 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ audience: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ admin: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index(
+  { eventKey: 1 },
+  { unique: true, sparse: true },
+);
 
 notificationSchema.pre('validate', function requireRecipient(next) {
   if (this.audience === NOTIFICATION_AUDIENCE.USER && !this.user) {

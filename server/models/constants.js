@@ -134,9 +134,13 @@ export const NOTIFICATION_TYPES = Object.freeze({
   PROMO: 'promo',
   SYSTEM: 'system',
   REVIEW: 'review',
+  INVENTORY: 'inventory',
 });
 
 export const NOTIFICATION_AUDIENCE = Object.freeze({
   USER: 'user',
   ADMIN: 'admin',
 });
+
+/** Retention for in-app notifications (days) */
+export const NOTIFICATION_RETENTION_DAYS = 90;

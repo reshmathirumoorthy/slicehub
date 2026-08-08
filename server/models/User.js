@@ -84,6 +84,20 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    notificationPreferences: {
+      orderEmails: {
+        type: Boolean,
+        default: true,
+      },
+      reviewEmails: {
+        type: Boolean,
+        default: false,
+      },
+      promoEmails: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: true,

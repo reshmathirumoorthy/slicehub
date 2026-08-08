@@ -10,6 +10,11 @@ import {
   PAYMENT_STATUS,
 } from '../models/constants.js';
 import { deductInventoryForPaidOrder, assertSufficientStockForItems } from './inventoryService.js';
+import {
+  notifyPaymentFailed,
+  notifyPaymentSuccess,
+  notifyOrderStatusChange,
+} from './notificationEvents.js';
 
 const getRazorpayClient = () => {
   if (!env.razorpay.keyId || !env.razorpay.keySecret) {
@@ -248,6 +253,7 @@ export const verifyRazorpayPayment = async ({
     await payment.save();
     order.paymentStatus = PAYMENT_STATUS.FAILED;
     await order.save();
+    await notifyPaymentFailed(order, 'Invalid payment signature');
     throw new ApiError(400, 'Invalid payment signature');
   }
 
@@ -276,8 +282,10 @@ export const verifyRazorpayPayment = async ({
   await payment.save();
 
   order.paymentStatus = PAYMENT_STATUS.PAID;
+  let becameConfirmed = false;
   if (order.status === ORDER_STATUS.PENDING) {
     order.status = ORDER_STATUS.CONFIRMED;
+    becameConfirmed = true;
   }
   await order.save();
 
@@ -289,6 +297,11 @@ export const verifyRazorpayPayment = async ({
       '[inventory] deduction after Razorpay verify failed:',
       stockError.message,
     );
+  }
+
+  await notifyPaymentSuccess(order);
+  if (becameConfirmed) {
+    await notifyOrderStatusChange(order, ORDER_STATUS.CONFIRMED);
   }
 
   return {
@@ -329,6 +342,8 @@ export const markPaymentFailed = async ({
 
   order.paymentStatus = PAYMENT_STATUS.FAILED;
   await order.save();
+
+  await notifyPaymentFailed(order, reason);
 
   return {
     orderId: order._id.toString(),

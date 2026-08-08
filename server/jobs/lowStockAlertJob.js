@@ -7,6 +7,7 @@ import {
   serializeInventoryItem,
 } from '../services/inventoryService.js';
 import { INVENTORY_STOCK_STATUS } from '../models/constants.js';
+import { notifyLowStockDigest } from '../services/notificationEvents.js';
 
 const resolveAlertRecipients = async () => {
   if (env.inventory.alertEmail) {
@@ -34,16 +35,6 @@ export const runLowStockAlertJob = async ({ force = false } = {}) => {
     };
   }
 
-  const recipients = await resolveAlertRecipients();
-  if (!recipients.length) {
-    console.warn('[inventory-alert] No admin email recipients configured');
-    return {
-      sent: false,
-      reason: 'no_recipients',
-      count: items.length,
-    };
-  }
-
   const serialized = items.map(serializeInventoryItem);
   const out = serialized.filter(
     (i) => i.stockStatus === INVENTORY_STOCK_STATUS.OUT_OF_STOCK,
@@ -51,6 +42,21 @@ export const runLowStockAlertJob = async ({ force = false } = {}) => {
   const low = serialized.filter(
     (i) => i.stockStatus === INVENTORY_STOCK_STATUS.LOW_STOCK,
   );
+
+  const recipients = await resolveAlertRecipients();
+  if (!recipients.length) {
+    console.warn('[inventory-alert] No admin email recipients configured');
+    await notifyLowStockDigest({
+      count: items.length,
+      outOfStock: out.length,
+      lowStock: low.length,
+    });
+    return {
+      sent: false,
+      reason: 'no_recipients',
+      count: items.length,
+    };
+  }
 
   const lines = serialized
     .map(
@@ -83,6 +89,12 @@ export const runLowStockAlertJob = async ({ force = false } = {}) => {
   });
 
   await markAlerted(items.map((i) => i._id));
+
+  await notifyLowStockDigest({
+    count: items.length,
+    outOfStock: out.length,
+    lowStock: low.length,
+  });
 
   console.info(
     `[inventory-alert] Sent digest for ${items.length} item(s) to ${recipients.length} recipient(s)`,

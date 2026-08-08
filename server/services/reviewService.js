@@ -10,6 +10,7 @@ import {
   ORDER_STATUS,
   PAYMENT_STATUS,
 } from '../models/constants.js';
+import { notifyReviewSubmitted } from './notificationEvents.js';
 
 const COMMENT_MIN = 5;
 const COMMENT_MAX = 1000;
@@ -325,6 +326,14 @@ export const createReview = async (userId, payload = {}) => {
   const populated = await Review.findById(review._id)
     .populate('user', 'name')
     .lean();
+
+  const pizzaDoc = await Pizza.findById(pizzaId).select('name').lean();
+  await notifyReviewSubmitted({
+    userId,
+    pizzaId,
+    reviewId: review._id,
+    pizzaName: pizzaDoc?.name,
+  });
 
   return sanitizeOwnReview(populated);
 };

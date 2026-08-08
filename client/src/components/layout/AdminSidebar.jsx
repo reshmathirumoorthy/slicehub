@@ -8,6 +8,7 @@ import {
   FiTag,
   FiFolder,
   FiStar,
+  FiBell,
 } from 'react-icons/fi';
 
 const items = [
@@ -17,6 +18,7 @@ const items = [
   { to: '/admin/categories', label: 'Categories', icon: FiFolder },
   { to: '/admin/inventory', label: 'Inventory', icon: FiLayers },
   { to: '/admin/reviews', label: 'Reviews', icon: FiStar },
+  { to: '/admin/notifications', label: 'Notifications', icon: FiBell },
   { to: '/admin/users', label: 'Users', icon: FiUsers },
   { to: '/admin/coupons', label: 'Coupons', icon: FiTag },
 ];

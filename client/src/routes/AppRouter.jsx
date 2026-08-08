@@ -27,8 +27,10 @@ import AdminInventory from '../pages/admin/AdminInventory';
 import AdminCategories from '../pages/admin/AdminCategories';
 import AdminUsers from '../pages/admin/AdminUsers';
 import AdminReviews from '../pages/admin/AdminReviews';
+import AdminNotifications from '../pages/admin/AdminNotifications';
 import AdminLogin from '../pages/admin/AdminLogin';
 import AdminPlaceholder from '../pages/admin/Placeholder';
+import NotificationsPage from '../pages/Notifications';
 import NotFound, { ErrorPage } from '../pages/errors/NotFound';
 
 const router = createBrowserRouter([
@@ -60,6 +62,7 @@ const router = createBrowserRouter([
       { path: '/orders/success/:id', element: <OrderSuccess /> },
       { path: '/orders/:id', element: <OrderDetails /> },
       { path: '/profile', element: <Profile /> },
+      { path: '/notifications', element: <NotificationsPage /> },
     ],
   },
   {
@@ -76,6 +79,7 @@ const router = createBrowserRouter([
       { path: 'categories', element: <AdminCategories /> },
       { path: 'inventory', element: <AdminInventory /> },
       { path: 'reviews', element: <AdminReviews /> },
+      { path: 'notifications', element: <AdminNotifications /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'customers', element: <Navigate to="/admin/users" replace /> },
       { path: 'coupons', element: <AdminPlaceholder title="Admin Coupons" /> },

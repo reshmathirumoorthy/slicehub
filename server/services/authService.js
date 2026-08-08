@@ -7,6 +7,7 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from './emailService.js';
+import { notifyNewCustomerRegistered } from './notificationEvents.js';
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -54,6 +55,8 @@ export const registerUser = async ({ name, email, password, phone }) => {
   } catch (error) {
     console.error('Failed to send verification email:', error.message);
   }
+
+  await notifyNewCustomerRegistered(user);
 
   return {
     user: sanitizeUser(user),

@@ -14,6 +14,8 @@ import adminDashboardRoutes from './adminDashboard.routes.js';
 import adminUserRoutes from './adminUser.routes.js';
 import reviewRoutes from './review.routes.js';
 import adminReviewRoutes from './adminReview.routes.js';
+import notificationRoutes from './notification.routes.js';
+import adminNotificationRoutes from './adminNotification.routes.js';
 
 const router = Router();
 
@@ -30,7 +32,9 @@ router.use('/admin/auth', adminAuthRoutes);
 router.use('/admin/dashboard', adminDashboardRoutes);
 router.use('/admin/users', adminUserRoutes);
 router.use('/admin/reviews', adminReviewRoutes);
+router.use('/admin/notifications', adminNotificationRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/notifications', notificationRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/builder', builderRoutes);
 router.use('/cart', cartRoutes);

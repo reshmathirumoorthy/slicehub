@@ -88,3 +88,69 @@ export const sendPasswordResetEmail = async ({ to, name, token, isAdmin = false 
     `,
   });
 };
+
+export const sendOrderStatusEmail = async ({
+  to,
+  name,
+  orderNumber,
+  status,
+  orderUrl,
+}) => {
+  const subjectMap = {
+    pending: `Order ${orderNumber} placed`,
+    confirmed: `Order ${orderNumber} confirmed`,
+    delivered: `Order ${orderNumber} delivered`,
+    cancelled: `Order ${orderNumber} cancelled`,
+  };
+  const subject = subjectMap[status] || `Order ${orderNumber} update`;
+  return sendEmail({
+    to,
+    subject: `[SliceHub] ${subject}`,
+    text: `Hi ${name}, your order ${orderNumber} is now "${status}". View: ${orderUrl}`,
+    html: `
+      <p>Hi ${name},</p>
+      <p>Your SliceHub order <strong>${orderNumber}</strong> status is now <strong>${status.replace(/_/g, ' ')}</strong>.</p>
+      <p><a href="${orderUrl}">View order</a></p>
+    `,
+  });
+};
+
+export const sendPaymentStatusEmail = async ({
+  to,
+  name,
+  orderNumber,
+  success,
+  orderUrl,
+}) => {
+  const subject = success
+    ? `Payment successful for ${orderNumber}`
+    : `Payment failed for ${orderNumber}`;
+  return sendEmail({
+    to,
+    subject: `[SliceHub] ${subject}`,
+    text: success
+      ? `Hi ${name}, payment for order ${orderNumber} succeeded. ${orderUrl}`
+      : `Hi ${name}, payment for order ${orderNumber} failed. ${orderUrl}`,
+    html: `
+      <p>Hi ${name},</p>
+      <p>${
+        success
+          ? `Payment for order <strong>${orderNumber}</strong> was successful.`
+          : `Payment for order <strong>${orderNumber}</strong> failed. You can retry from your order page.`
+      }</p>
+      <p><a href="${orderUrl}">View order</a></p>
+    `,
+  });
+};
+
+export const sendReviewSubmittedEmail = async ({ to, name, pizzaName }) => {
+  return sendEmail({
+    to,
+    subject: '[SliceHub] Thanks for your review',
+    text: `Hi ${name}, thanks for reviewing ${pizzaName}.`,
+    html: `
+      <p>Hi ${name},</p>
+      <p>Thanks for reviewing <strong>${pizzaName}</strong>. Your feedback helps other pizza lovers.</p>
+    `,
+  });
+};

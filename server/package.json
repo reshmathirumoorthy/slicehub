@@ -16,6 +16,7 @@
     "test:orders": "node utils/testOrderApis.js",
     "test:payments": "node utils/testPaymentSignature.js",
     "test:phase13": "node utils/testPhase13Security.js",
+    "test:notifications": "node utils/testNotifications.js",
     "seed:coupon": "node utils/seedCoupon.js",
     "seed:inventory": "node utils/seedInventory.js",
     "test:inventory": "node utils/testInventory.js",

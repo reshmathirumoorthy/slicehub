@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { FiMenu, FiShoppingBag, FiX } from 'react-icons/fi';
 import Button from '../ui/Button';
+import NotificationBell from '../notifications/NotificationBell';
 import { useCart } from '../../context/useCart';
 import { getUserToken } from '../../services/api';
 
@@ -42,6 +43,7 @@ function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <NotificationBell />
           <Button to="/cart" variant="secondary" size="sm">
             <FiShoppingBag />
             Cart{count > 0 ? ` (${count})` : ''}
@@ -57,14 +59,17 @@ function Navbar() {
           )}
         </div>
 
-        <button
-          type="button"
-          className="rounded-lg p-2 text-white md:hidden"
-          aria-label="Toggle menu"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <FiX size={22} /> : <FiMenu size={22} />}
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          <NotificationBell />
+          <button
+            type="button"
+            className="rounded-lg p-2 text-white"
+            aria-label="Toggle menu"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <FiX size={22} /> : <FiMenu size={22} />}
+          </button>
+        </div>
       </div>
 
       {open ? (
@@ -80,6 +85,13 @@ function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            <NavLink
+              to="/notifications"
+              className={linkClass}
+              onClick={() => setOpen(false)}
+            >
+              Notifications
+            </NavLink>
             <NavLink
               to="/cart"
               className={linkClass}

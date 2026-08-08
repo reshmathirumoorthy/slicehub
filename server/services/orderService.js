@@ -20,6 +20,12 @@ import {
   deductInventoryForPaidOrder,
 } from './inventoryService.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
+import {
+  notifyOrderPlaced,
+  notifyOrderStatusChange,
+  notifyPaymentSuccess,
+  notifyRefundProcessed,
+} from './notificationEvents.js';
 
 const CANCELABLE = new Set([ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED]);
 
@@ -271,7 +277,9 @@ export const createOrderFromCart = async ({
   cart.couponCode = null;
   await cart.save();
 
-  return serializeOrder(order, payment);
+  const serialized = serializeOrder(order, payment);
+  await notifyOrderPlaced(order);
+  return serialized;
 };
 
 export const listMyOrders = async (userId, { page = 1, limit = 20 } = {}) => {
@@ -331,8 +339,10 @@ export const cancelMyOrder = async (userId, orderId, reason = '') => {
     payment.refundedAt = new Date();
     payment.refundAmount = payment.amount;
     await payment.save();
+    await notifyRefundProcessed(order);
   }
 
+  await notifyOrderStatusChange(order, ORDER_STATUS.CANCELLED);
   return serializeOrder(order, payment);
 };
 
@@ -432,6 +442,7 @@ export const updateAdminOrderStatus = async ({
   order.status = status;
   if (adminId) order.assignedAdmin = adminId;
 
+  let codJustPaid = false;
   if (status === ORDER_STATUS.DELIVERED) {
     order.deliveredAt = new Date();
     // COD settled on delivery
@@ -441,6 +452,7 @@ export const updateAdminOrderStatus = async ({
         order.paymentStatus === PAYMENT_STATUS.CREATED)
     ) {
       order.paymentStatus = PAYMENT_STATUS.PAID;
+      codJustPaid = true;
       const payment = await Payment.findOne({ order: order._id });
       if (
         payment &&
@@ -472,6 +484,11 @@ export const updateAdminOrderStatus = async ({
         stockError.message,
       );
     }
+  }
+
+  await notifyOrderStatusChange(order, status);
+  if (codJustPaid) {
+    await notifyPaymentSuccess(order);
   }
 
   return serializeOrder(order);
