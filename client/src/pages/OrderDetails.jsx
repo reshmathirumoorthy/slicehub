@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
@@ -24,6 +24,10 @@ const STATUS_HEADLINE = {
   cancelled: 'This order was cancelled',
 };
 
+/** Stop auto-refresh once the order can no longer change meaningfully. */
+const TERMINAL_STATUSES = new Set(['delivered', 'cancelled']);
+const POLL_INTERVAL_MS = 5000;
+
 function OrderDetails() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
@@ -31,24 +35,46 @@ function OrderDetails() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await fetchMyOrder(id);
-      setOrder(data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Order not found');
-      setOrder(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!id) return;
+      if (!silent) {
+        setLoading(true);
+        setError('');
+      }
+      try {
+        const data = await fetchMyOrder(id);
+        setOrder(data);
+        if (!silent) setError('');
+      } catch (err) {
+        if (!silent) {
+          setError(err.response?.data?.message || 'Order not found');
+          setOrder(null);
+        }
+        // Silent poll failures keep the last successful order on screen.
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    load({ silent: false });
+  }, [load]);
+
+  // Lightweight polling so admin status changes appear without a full page reload.
+  useEffect(() => {
+    if (!order?.status || TERMINAL_STATUSES.has(order.status)) {
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      load({ silent: true });
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [load, order?.status]);
 
   const handleCancel = async () => {
     if (!window.confirm('Cancel this order?')) return;
