@@ -55,7 +55,12 @@ const EMAIL_STATUSES = new Set([
 
 const safeEmail = async (fn) => {
   try {
-    await fn();
+    await Promise.race([
+      fn(),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('email timeout')), 8000);
+      }),
+    ]);
   } catch (error) {
     console.error('[notification-email] failed:', error.message);
   }

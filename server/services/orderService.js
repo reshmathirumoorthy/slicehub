@@ -607,9 +607,17 @@ export const updateAdminOrderStatus = async ({
     }
   }
 
-  await notifyOrderStatusChange(order, status);
-  if (codJustPaid) {
-    await notifyPaymentSuccess(order);
+  // Never fail the status update because notifications/email are slow or down.
+  try {
+    await notifyOrderStatusChange(order, status);
+    if (codJustPaid) {
+      await notifyPaymentSuccess(order);
+    }
+  } catch (notifyError) {
+    console.error(
+      '[order-status] notification failed after status save:',
+      notifyError.message,
+    );
   }
 
   const payment = await Payment.findOne({ order: order._id });

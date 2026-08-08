@@ -37,6 +37,7 @@ function AdminOrders() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selected, setSelected] = useState(null);
+  const [draftStatus, setDraftStatus] = useState('');
   const [updating, setUpdating] = useState(false);
 
   const loadOrders = useCallback(async () => {
@@ -67,6 +68,7 @@ function AdminOrders() {
     try {
       const order = await fetchAdminOrder(id);
       setSelected(order);
+      setDraftStatus(order.status || '');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not load order');
     }
@@ -77,23 +79,34 @@ function AdminOrders() {
     if (focus) openOrder(focus);
   }, [searchParams, openOrder]);
 
-  const handleStatus = async (nextStatus) => {
-    if (!selected) return;
+  const handleStatus = async () => {
+    if (!selected?.id || !draftStatus) return;
+    if (draftStatus === selected.status) {
+      toast('Status is already up to date');
+      return;
+    }
     if (
       !window.confirm(
-        `Update ${selected.orderNumber} to ${formatStatus(nextStatus)}?`,
+        `Update ${selected.orderNumber} to ${formatStatus(draftStatus)}?`,
       )
     ) {
+      setDraftStatus(selected.status);
       return;
     }
     setUpdating(true);
     try {
-      const order = await updateAdminOrderStatus(selected.id, nextStatus);
+      const order = await updateAdminOrderStatus(selected.id, draftStatus);
       setSelected(order);
-      toast.success(`Status → ${formatStatus(nextStatus)}`);
+      setDraftStatus(order.status || draftStatus);
+      toast.success(`Status → ${formatStatus(order.status || draftStatus)}`);
       await loadOrders();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Status update failed');
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Status update failed';
+      toast.error(message);
+      setDraftStatus(selected.status);
     } finally {
       setUpdating(false);
     }
@@ -120,7 +133,7 @@ function AdminOrders() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full rounded-xl border border-[var(--glass-border)] bg-white/5 px-4 py-3 outline-none"
+            className="w-full appearance-auto rounded-xl border border-[var(--glass-border)] bg-[#111114] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--accent)]/60 focus:ring-1 focus:ring-[var(--accent)]/40 [&>option]:bg-[#111114] [&>option]:text-[var(--text)]"
           >
             <option value="">All</option>
             {ORDER_STATUSES.map((s) => (
@@ -137,7 +150,7 @@ function AdminOrders() {
           <select
             value={paymentStatus}
             onChange={(e) => setPaymentStatus(e.target.value)}
-            className="w-full rounded-xl border border-[var(--glass-border)] bg-white/5 px-4 py-3 outline-none"
+            className="w-full appearance-auto rounded-xl border border-[var(--glass-border)] bg-[#111114] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--accent)]/60 focus:ring-1 focus:ring-[var(--accent)]/40 [&>option]:bg-[#111114] [&>option]:text-[var(--text)]"
           >
             <option value="">All</option>
             {PAYMENT_STATUSES.map((s) => (
@@ -303,9 +316,9 @@ function AdminOrders() {
                 </span>
                 <select
                   disabled={updating}
-                  value={selected.status}
-                  onChange={(e) => handleStatus(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-white/5 px-4 py-3 outline-none"
+                  value={draftStatus || selected.status}
+                  onChange={(e) => setDraftStatus(e.target.value)}
+                  className="w-full appearance-auto rounded-xl border border-[var(--glass-border)] bg-[#111114] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--accent)]/60 focus:ring-1 focus:ring-[var(--accent)]/40 disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-[#111114] [&>option]:text-[var(--text)]"
                 >
                   {ORDER_STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -314,6 +327,16 @@ function AdminOrders() {
                   ))}
                 </select>
               </label>
+              <Button
+                type="button"
+                className="w-full"
+                disabled={
+                  updating || !draftStatus || draftStatus === selected.status
+                }
+                onClick={handleStatus}
+              >
+                {updating ? 'Updating…' : 'Save status'}
+              </Button>
             </>
           )}
         </GlassCard>
