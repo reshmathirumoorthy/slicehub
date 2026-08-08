@@ -1,0 +1,43 @@
+{
+  "name": "slicehub-client",
+  "private": true,
+  "version": "1.0.0",
+  "description": "SliceHub Pizza Delivery Platform - React Client",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "axios": "^1.19.0",
+    "framer-motion": "^13.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.7.0",
+    "react-router-dom": "^7.18.2",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.9.0",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.2.0"
+  }
+}
